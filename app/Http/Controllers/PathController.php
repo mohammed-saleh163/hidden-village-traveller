@@ -15,16 +15,7 @@ class PathController extends Controller
 
     public function getPaths(GetPathsRequest $request){
         $data = $request->validated();
-        $cacheKey = $data['source'] . '-' . $data['destination'];
-        
-        $cacheExists = Cache::has($cacheKey);
 
-        if($cacheExists){
-            return Cache::get($cacheKey);
-        }
-        else {
-            return $this->pathService->getPaths($data['source'], $data['destination']);
-        }
-
+        return $this->pathService->getPaths($data['source'], $data['destination']);
     }
 }

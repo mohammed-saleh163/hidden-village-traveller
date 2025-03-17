@@ -10,6 +10,14 @@ class PathService
 
     public function getPaths(string $source, string $destination){
 
+        $cacheKey = $source . '-' . $destination;
+
+        $cacheExists = Cache::has($cacheKey);
+
+        if($cacheExists){
+            return Cache::get($cacheKey);
+        }
+
         $cities = config('constants.CITIES');
         
         $sourceIndex = array_search($source, $cities);
