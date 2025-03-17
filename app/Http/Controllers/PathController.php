@@ -16,6 +16,6 @@ class PathController extends Controller
     public function getPaths(GetPathsRequest $request){
         $data = $request->validated();
 
-        return $this->pathService->getPaths($data['source'], $data['destination']);
+        return $this->pathService->findPaths($data['source'], $data['destination']);
     }
 }

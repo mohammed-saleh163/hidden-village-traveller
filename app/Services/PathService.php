@@ -3,13 +3,14 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class PathService
 {
     public function __construct(){}
 
-    public function getPaths(string $source, string $destination){
-
+    public function findPaths(string $source, string $destination){
         $cacheKey = $source . '-' . $destination;
 
         $cacheExists = Cache::has($cacheKey);
@@ -20,25 +21,38 @@ class PathService
 
         $cities = config('constants.CITIES');
         
-        $sourceIndex = array_search($source, $cities);
+        $startIndex = array_search($source, $cities);
         $destinationIndex = array_search($destination, $cities);
         
-        
-        $costsArray = config('constants.COSTS')[$sourceIndex]; 
+        $costs = config('constants.COSTS')[$startIndex];
+        if($startIndex > $destinationIndex || $startIndex == $destinationIndex){
+            throw new HttpException(400, 'Source and destination are invalid, cannout travel that route');
+        }
 
         $paths = []; 
-        for ($i = $sourceIndex + 1; $i < count($cities); $i++) {
-           $route = $cities[$sourceIndex] . " -> " .join(" -> ", array_slice($cities, $i, $destinationIndex)); 
-           $costSum = array_sum(array_slice($costsArray, $i, $destinationIndex));
+        $this->searchPaths($startIndex, $destinationIndex, $cities, $costs, 0, [], $paths);
 
-           array_push($paths, [
-               "route" => $route,
-               "cost" => $costSum,]);
+        Cache::add($cacheKey, $paths, now()->addSecond(30));
+
+        return $paths; 
+    }
+
+    private function searchPaths($startIndex, $destinationIndex, $cities, $costs, $totalCost, $initialPath, &$paths){
+
+        $initialPath[] = $cities[$startIndex];
+
+        if ($startIndex == $destinationIndex) { //base case
+            $paths[] = [
+                'route' => implode(" -> ", $initialPath),
+                'cost' => $totalCost,
+            ];
         }
-        
-        Cache::add($source . '-' . $destination, $paths, now()->addSecond(30));
 
-        return $paths;
+        for ($nextIndex = $startIndex + 1; $nextIndex < count($cities); $nextIndex++) {
+            if($costs[$nextIndex] > 0){
+                $this->searchPaths($nextIndex, $destinationIndex, $cities, $costs, $totalCost + $costs[$nextIndex], $initialPath, $paths);
+            }
+        }
     }
 
 }
