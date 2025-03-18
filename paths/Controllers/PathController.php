@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Paths\Controllers;
 
-use App\Http\Requests\GetPathsRequest;
-use App\Services\PathService;
+use Paths\Requests\GetPathsRequest;
+use Paths\Services\PathService;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 

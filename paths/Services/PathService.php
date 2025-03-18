@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace Paths\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
