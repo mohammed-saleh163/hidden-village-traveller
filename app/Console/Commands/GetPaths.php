@@ -32,5 +32,6 @@ class GetPaths extends Command
         ]);
 
         $this->table(['Route', 'Cost'], $response->json());
+        $this->info("Number of Paths: " . count($response->json()));
     }
 }
