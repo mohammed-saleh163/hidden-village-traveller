@@ -1,8 +1,8 @@
 <?php
 
-use Paths\Controllers\PathController;
+use App\Http\Controllers\PathController;
 use Illuminate\Support\Facades\Route;
-use Paths\Controllers\PathLocksController;
+use App\Http\Controllers\PathLocksController;
 
 Route::post('/paths', [PathController::class, 'getPaths']);
 Route::post('/paths/reserve-path', [PathLocksController::class, 'reserveRoute']);

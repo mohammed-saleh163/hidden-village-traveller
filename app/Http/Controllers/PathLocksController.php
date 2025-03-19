@@ -1,11 +1,10 @@
 <?php
 
-namespace Paths\Controllers;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Paths\Services\PathLockingService;
-use Paths\Requests\LockPathRequest;
-use Paths\Requests\ReserveRouteRequest;
+use App\Http\Requests\LockPathRequest;
+use App\Http\Requests\ReserveRouteRequest;
 
 class PathLocksController extends Controller
 {
