@@ -9,45 +9,64 @@ class PathLockingService {
 
       
   public function reserveRoute(string $route){
-    $cacheKey = $this->getLockCacheKey($route);
+    $cacheKey = $this->getLockCacheKey($route, '-');
 
     if(Cache::has($cacheKey)){
         throw new HttpException(423, "Route is already in use");
     }
 
+    
+    $routeComplexity = $this->calculateRoadComplexity($route, 2);
+
+    // time units are subject to change based on the preferred unit. 
+    // the default remains in seconds now for testing simulation purposes 
+    
+    $locked = $this->lockRoute($route, $routeComplexity['road_complexity']);
+
+    return[
+      'locked' => $locked, 
+      'route' => $route,
+      'number_of_hops' => $routeComplexity['number_of_hops'],
+      'route_complexity' => $routeComplexity['road_complexity'],
+      'route_cache_key' => $cacheKey,
+    ];
+  }
+
+
+  public function lockRoute(string $route, float $timeToLock, string $unit = 'seconds'){
+      $cacheKey = $this->getLockCacheKey($route, '-');
+
+      return Cache::put($cacheKey, true, now()->add($timeToLock, $unit));
+  }
+
+  public function unlockRoute(string $route){
+      $cacheKey = $this->getLockCacheKey($route, '-');
+
+      return Cache::forget($cacheKey);
+  }
+
+  protected function calculateRoadComplexity(string $route, int $hoursPerHop){
+    
     $hops = substr_count($route, '->');
     
-    $routeComplexity = $this->calculateRoadComplexity($hops, 2);
-
-    return $this->lockRoute($route, $routeComplexity);
-}
-
-private function lockRoute(string $route, int $routeComplexity){
-    $cacheKey = $this->getLockCacheKey($route);
-
-    return Cache::put($cacheKey, true, now()->addHours($routeComplexity));
-}
-
-protected function unlockRoute(string $route){
-    $cacheKey = $this->getLockCacheKey($route);
-
-    return Cache::forget($cacheKey);
-}
-
-private function calculateRoadComplexity(int $hops, int $hoursPerHop){
     $num = pow($hoursPerHop, $hops);
+
     $base = 2; 
 
     $complexity = log($num, $base);
 
-    return $complexity; 
-}
+      return [
+        'number_of_hops' => $hops, 
+        'road_complexity' => $complexity
+      ]; 
+  }
 
-private function getLockCacheKey(string $route){
-    $transformedString = str_replace(' -> ', '-', $route);
-    $cacheKey = 'lock-' . $transformedString;
+  protected function getLockCacheKey(string $route, $separator){
+      $transformedString = str_replace(' -> ', $separator, $route); 
 
-    return $cacheKey;
-}
+      $cacheKey = 'lock' . $separator . $transformedString;
+      
+      return strtolower($cacheKey);
+  }
 
 }
