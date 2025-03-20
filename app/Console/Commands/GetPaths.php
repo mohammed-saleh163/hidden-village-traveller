@@ -30,6 +30,7 @@ class GetPaths extends Command
             'source' => $this->argument('source'),
             'destination' => $this->argument('destination')
         ]);
+        // dd($response->json());
 
         $this->table(['Route', 'Cost'], $response->json());
         $this->info("Number of Paths: " . count($response->json()));
