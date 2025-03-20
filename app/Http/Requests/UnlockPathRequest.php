@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class LockPathRequest extends FormRequest
+class UnlockPathRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,8 +22,7 @@ class LockPathRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cache_key' => 'required|string',
-            'time_to_live' => ['required', 'string', 'regex:/^\d+(\.\d+)?\s+(seconds|minutes|hours|days)$/'],
+            'k' => 'required|string',
         ];
     }
 }

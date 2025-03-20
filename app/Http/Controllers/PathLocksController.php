@@ -2,32 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use Paths\Services\PathLockingService;
+use App\Http\Requests\GetLockCacheKeyRequest;
 use App\Http\Requests\LockPathRequest;
-use App\Http\Requests\ReserveRouteRequest;
+use App\Traits\InteractsWithLocks;
 
 class PathLocksController extends Controller
 {
-    public function __construct(
-        private PathLockingService $pathLockingService,
-    ){}
+    use InteractsWithLocks;
 
 
-    public function reserveRoute(ReserveRouteRequest $request) {
-        $data = $request->validated(); 
-        
-        return $this->pathLockingService->reserveRoute($data['route']);
+    public function lockRoute(LockPathRequest $request)
+    {
+        $cacheKey = $request->validated();
+
+        return $this->lock($cacheKey);
     }
 
-    public function lockRoute(LockPathRequest $request){
-        $data = $request->validated();
+    public function unlockRoute(LockPathRequest $request)
+    {
+        $cacheKey =  $request->validated();
 
-        return $this->pathLockingService->lockRoute($data['route'], $data['time_to_lock']);
+        return $this->unlock($cacheKey);
     }
 
-    public function unlockRoute(ReserveRouteRequest $request){
-        $route =  $request->validated()['route'];
+    public function getLockCacheKey(GetLockCacheKeyRequest $request)
+    {
+        $identifier = $request->validated();
 
-        return $this->pathLockingService->unlockRoute($route);
+        return $this->getLockKey($identifier);
     }
 }
