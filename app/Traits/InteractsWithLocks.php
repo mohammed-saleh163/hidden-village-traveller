@@ -8,22 +8,18 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 trait InteractsWithLocks
 {
 
-    public function lock(string $key, $timeToLive = '1 minutes')
+    public function lock(string $key, int $timeToLive = 1): bool
     {
         if (Cache::has($key)) {
             throw new HttpException(423, 'Already Locked');
         }
 
-        $isLocked = Cache::put($key, true, now()->add($timeToLive));
+        $isLocked = Cache::put($key, true, now()->addSeconds($timeToLive));
 
-        return [
-            'locked' => $isLocked,
-            'time_to_live' => $timeToLive,
-            'cache_key' => $key,
-        ];
+        return $isLocked;
     }
 
-    public function unlock(string $cacheKey)
+    public function unlock(string $cacheKey): bool
     {
         if (!Cache::has($cacheKey)) {
             throw new HttpException(404, 'There is no cache with that key');
@@ -35,7 +31,7 @@ trait InteractsWithLocks
     }
 
 
-    public function getLockKey(string $identifier)
+    public function getLockKey(string $identifier): string
     {
         $prefix = config('lock.prefix');
         
