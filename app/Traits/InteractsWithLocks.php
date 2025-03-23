@@ -2,32 +2,57 @@
 
 namespace App\Traits;
 
+use App\Exceptions\LockedActionException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 trait InteractsWithLocks
 {
 
-    public function lock(string $key, int $timeToLive = 1): bool
+    public function isLocked(string $identifier) {
+        $key = $this->getLockKey($identifier);
+
+        return Cache::has($key);
+    }
+
+    public function lock(string $identifier, int $timeToLive = 1): bool
     {
+
+        $key = $this->getLockKey($identifier);
+
         if (Cache::has($key)) {
-            throw new HttpException(423, 'Already Locked');
+            throw new LockedActionException();
         }
 
-        $isLocked = Cache::put($key, true, now()->addSeconds($timeToLive));
+        $lock = Cache::lock($key, $timeToLive); // lock will be automatically released after the $timeToLive expires
+
+        if(!$lock->get()) {
+            throw new LockedActionException();
+        }
+
+        $isLocked = Cache::put($key, $lock->owner(), now()->addSeconds($timeToLive));
 
         return $isLocked;
     }
 
-    public function unlock(string $cacheKey): bool
+    public function unlock(string $identifier): bool
     {
-        if (!Cache::has($cacheKey)) {
-            throw new HttpException(404, 'There is no cache with that key');
+        $key = $this->getLockKey($identifier);
+
+        if (!Cache::has($key)) {
+            throw new HttpException(404, 'There is no lock with that key');
         }
 
-        $isUnlocked = Cache::forget($cacheKey);
+        $lockOwner = Cache::get($key);
 
-        return $isUnlocked;
+        $lock = Cache::restoreLock($key, $lockOwner);
+        
+        $lockReleased = $lock->release();
+
+        $isUnlocked = Cache::forget($key);
+
+        return $lockReleased && $isUnlocked;
     }
 
 
@@ -37,10 +62,10 @@ trait InteractsWithLocks
         
         $separator = config('lock.lock_key_separator');
 
-        // $transformedString = preg_replace('/\s*(->|-|_|:| )\s*/', $separator, $identifier);
+        $key = $prefix . $separator . $identifier;
 
-        $cacheKey = $prefix . $separator . $identifier;
+        $hashedKey = hash('sha256', $key);
 
-        return strtolower($cacheKey);
+        return $hashedKey;
     }
 }
