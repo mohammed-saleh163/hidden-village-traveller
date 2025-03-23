@@ -4,13 +4,12 @@ namespace App\Traits;
 
 use App\Exceptions\LockedActionException;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 trait InteractsWithLocks
 {
 
-    public function isLocked(string $identifier) {
+    public function isLocked(string $identifier): bool {
         $key = $this->getLockKey($identifier);
 
         return Cache::has($key);
