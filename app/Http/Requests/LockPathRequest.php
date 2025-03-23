@@ -23,7 +23,7 @@ class LockPathRequest extends FormRequest
     {
         return [
             'cache_key' => 'required|string',
-            'time_to_live' => ['required', 'string', 'regex:/^\d+(\.\d+)?\s+(seconds|minutes|hours|days)$/'],
+            'time_to_live' => 'required|integer',
         ];
     }
 }

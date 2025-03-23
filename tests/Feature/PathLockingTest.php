@@ -1,98 +1,91 @@
 <?php
 
+use App\Helpers\Complexity;
+use Paths\Services\PathService;
+
+function getRandomRoute(string $source, string $destination) {
+    $routes = new PathService()->findPaths($source, $destination);
+
+    $routeIndex = random_int(0, count($routes) - 1); // pick random route
+    $route = $routes[$routeIndex]['route']; 
+
+    return $route;
+}
+
+function getPathKey(string $route) {
+    $identifier = preg_replace('/\s*(->|-|_|:| )\s*/', config('lock.lock_key_separator'), $route);
+    return $identifier;
+}
+
+function getTtl($route){
+    $hops = substr_count($route, '->');
+    $ttl = (int) Complexity::calculateComplexity($hops, 2);
+
+    return $ttl;
+
+}
+
+
 test('Paths can be reserved', function () {
-    $source = 'Tsuchi';
-    $dest = 'Konoha';
+    $route = getRandomRoute('Tsuchi', 'Mizu');
 
-    $routesResponse = $this->post('/api/paths', [
-        'source' => $source,
-        'destination' => $dest,
+    $cacheKey = getPathKey($route);
+   
+    $ttl = getTtl($route);
+
+    $reservationResponse = $this->post('/api/paths/lock-path', [
+        'cache_key' => $cacheKey,
+        'time_to_live' => $ttl,
     ]);
 
-    $routeIndex = random_int(0, count($routesResponse->json()) - 1); // pick random route
-    $route = $routesResponse->json()[$routeIndex]['route']; 
-
-    $reservationResponse = $this->post('/api/paths/reserve-path', [
-        'route' => $route,
-    ]);
-
-    expect($reservationResponse->json()['locked'])->toBe(true);
+    expect((bool)$reservationResponse->json())->toBeTrue();
     $reservationResponse->assertStatus(200);
 });
 
 
 test('Locked paths cannot be reserved', function () {
-    $source = 'Tsuchi';
-    $dest = 'Mizu';
+    $route = getRandomRoute('Tsuchi', 'Mizu');
 
-    $routesResponse = $this->post('/api/paths', [
-        'source' => $source,
-        'destination' => $dest,
+    $cacheKey = getPathKey($route);
+    $ttl = getTtl($route);
+    
+    $this->post('/api/paths/lock-path', [
+        'cache_key' => $cacheKey,
+        'time_to_live' => $ttl,
     ]);
 
-    $routeIndex = random_int(0, count($routesResponse->json()) - 1);
-    $route = $routesResponse->json()[$routeIndex]['route']; 
 
-    $this->post('/api/paths/reserve-path', [
-        'route' => $route,
-    ]);
-
-    $reservationResponse2 = $this->post('/api/paths/reserve-path', [
-        'route' => $route,
+    $reservationResponse2 = $this->post('/api/paths/lock-path', [
+        'cache_key' => $cacheKey,
+        'time_to_live' => $ttl,
     ]);
 
     $reservationResponse2->assertStatus(423); // Locked HTTP status
 });
 
-test('The API returns the corrects number of hops for the route', function () {
-    $source = 'Tsuchi';
-    $dest = 'Hokage';
-
-    $routesResponse = $this->post('/api/paths', [
-        'source' => $source,
-        'destination' => $dest,
-    ]);
-
-    $routeIndex = random_int(0, count($routesResponse->json()) - 1);
-    $route = $routesResponse->json()[$routeIndex]['route']; 
-    $hopsCount = substr_count($route, ' -> ');
-    $reservationResponse = $this->post('/api/paths/reserve-path', [
-        'route' => $route,
-    ]);
-
-    expect($reservationResponse->json()['number_of_hops'])->toBe($hopsCount);
-    $reservationResponse->assertStatus(200);
-});
-
 
 
 test('Routes can be reserved again after the complexity time passes', function () {
-    $source = 'Tsuchi';
-    $dest = 'Konoha';
+    $route = getRandomRoute('Tsuchi', 'Kaze');
 
-    $routesResponse = $this->post('/api/paths', [
-        'source' => $source,
-        'destination' => $dest,
+    $ttl = getTtl($route);
+    $cacheKey = getPathKey($route);
+
+    $reservationResponse = $this->post('/api/paths/lock-path', [
+        'cache_key' => $cacheKey,
+        'time_to_live' => $ttl,
     ]);
 
-    $routeIndex = random_int(0, count($routesResponse->json()) - 1);
-    $route = $routesResponse->json()[$routeIndex]['route']; 
 
+    sleep($ttl); // Pause thread execution
 
-    $reservationResponse = $this->post('/api/paths/reserve-path', [
-        'route' => $route,
+    $reservationResponse2 = $this->post('/api/paths/lock-path', [
+        'cache_key' => $cacheKey,
+        'time_to_live' => $ttl,
     ]);
 
-    $complexity = $reservationResponse->json()['route_complexity'];
-
-    sleep($complexity); // Pause thread execution
-
-    $reservationResponse2 = $this->post('/api/paths/reserve-path', [
-        'route' => $route,
-    ]);
-
-    expect($reservationResponse2->json()['locked'])->toBe(true);
-    
+    expect((bool)$reservationResponse->json())->toBe(true);
+    expect((bool)$reservationResponse2->json())->toBe(true);
 
     $reservationResponse->assertStatus(200);
     $reservationResponse2->assertStatus(200);
@@ -100,28 +93,23 @@ test('Routes can be reserved again after the complexity time passes', function (
 
 test('Locked routes can be unlocked again', function (){
 
-    $source = 'Tsuchi';
-    $dest = 'Konoha';
+    $route = getRandomRoute('Konoha', 'Hokage');
 
-    $routesResponse = $this->post('/api/paths', [
-        'source' => $source,
-        'destination' => $dest,
-    ]);
-
-    $routeIndex = random_int(0, count($routesResponse->json()) - 1);
-    $route = $routesResponse->json()[$routeIndex]['route']; 
-
+    $cacheKey = getPathKey($route);
 
     $lockResponse = $this->post('/api/paths/lock-path', [
-        'route' => $route,
-        'time_to_lock' => 1000000000,
+        'cache_key' => $cacheKey,
+        'time_to_live' => 1000000000,
     ]);
+    
+    $lockResponse->assertStatus(200);
 
     
     $unlockResponse = $this->post('/api/paths/unlock-path', [
-        'route' => $route,
+        'cache_key' => $cacheKey,
     ]);
 
+    // dd($unlockResponse->json());
     expect( (bool) $unlockResponse->json())->toBeTrue();
 
     $unlockResponse->assertStatus(200);

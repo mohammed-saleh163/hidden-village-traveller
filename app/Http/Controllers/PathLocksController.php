@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GetLockCacheKeyRequest;
 use App\Http\Requests\LockPathRequest;
+use App\Http\Requests\UnlockPathRequest;
 use App\Traits\InteractsWithLocks;
 
 class PathLocksController extends Controller
@@ -11,23 +12,23 @@ class PathLocksController extends Controller
     use InteractsWithLocks;
 
 
-    public function lockRoute(LockPathRequest $request)
+    public function lockRoute(LockPathRequest $request): bool
     {
-        $cacheKey = $request->validated();
+        $data = $request->validated();
 
-        return $this->lock($cacheKey);
+        return $this->lock($data['cache_key'], $data['time_to_live']);
     }
 
-    public function unlockRoute(LockPathRequest $request)
+    public function unlockRoute(UnlockPathRequest $request)
     {
-        $cacheKey =  $request->validated();
+        $cacheKey =  $request->validated()['cache_key'];
 
         return $this->unlock($cacheKey);
     }
 
     public function getLockCacheKey(GetLockCacheKeyRequest $request)
     {
-        $identifier = $request->validated();
+        $identifier = $request->validated()['identifier'];
 
         return $this->getLockKey($identifier);
     }

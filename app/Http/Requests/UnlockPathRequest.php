@@ -22,7 +22,7 @@ class UnlockPathRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'k' => 'required|string',
+            'cache_key' => 'required|string',
         ];
     }
 }
