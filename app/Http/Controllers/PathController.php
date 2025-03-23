@@ -1,10 +1,9 @@
 <?php
 
-namespace Paths\Controllers;
+namespace App\Http\Controllers;
 
-use Paths\Requests\GetPathsRequest;
+use App\Http\Requests\GetPathsRequest;
 use Paths\Services\PathService;
-use App\Http\Controllers\Controller;
 
 class PathController extends Controller
 {

@@ -1,10 +1,10 @@
 <?php
 
-namespace Paths\Requests;
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ReserveRouteRequest extends FormRequest
+class GetLockCacheKeyRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,7 @@ class ReserveRouteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'route' => 'required'
+            'identifier' => 'required|string',
         ];
     }
 }
